@@ -1,0 +1,475 @@
+<!-- templates/base.html -->
+
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Pruebas de carga | Apache benchmark</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bulma/0.7.2/css/bulma.min.css" />
+  <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.2.0/css/all.css">
+
+  <link rel="stylesheet" href="https://unpkg.com/buefy/dist/buefy.min.css" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bulma/0.7.2/css/bulma.min.css" />
+
+</head>
+
+<body>
+  <div id="app">
+
+    <section class="hero is-info">
+      <div class="hero-body">
+        <p class="title">
+          Pruebas de carga con <a href="https://httpd.apache.org/docs/2.4/programs/ab.html" target="__blank">Apache
+            Benchmark</a>
+        </p>
+        <p class="subtitle">
+          Luis Mejia & Saad Bittar
+        </p>
+      </div>
+    </section>
+
+
+    <br>
+
+    <div class="container is-fluid">
+
+
+      <b-field grouped>
+        <b-input placeholder="[http://]hostname[:port]/path" expanded icon-pack="fas" icon="globe-americas"
+          v-model="url" size="is-large">
+        </b-input>
+        <p class="control">
+          <b-button size="is-large" class="button is-link is-outlined" @click="evaluar">Evaluar</b-button>
+        </p>
+      </b-field>
+
+      <b-field grouped>
+        <b-field label="N&uacute;mero total de solicitudes">
+          <b-numberinput min="1" max="25" v-model="n" icon-pack="fas"></b-numberinput>
+        </b-field>
+        <b-field label="N&uacute;mero de solicitudes concurrentes">
+          <b-numberinput min="1" max="10" v-model="c" icon-pack="fas"></b-numberinput>
+        </b-field>
+        <b-field>
+          <b-button class="button is-danger is-outlined" icon-pack="fas" icon-left="file-pdf" @click="generarPDF">Exportar a pdf</b-button>
+        </b-field>
+      </b-field>
+
+
+      <br>
+
+      <b-tabs position="is-centered" size="is-medium">
+
+        <b-loading :is-full-page="true" :active.sync="isLoading" :can-cancel="true"></b-loading>
+
+        <b-tab-item label="Secuenciales" icon-pack="fas" icon="cube">
+
+          <div class="columns">
+
+            <div class="column">
+
+              <h2 class="title">Pruebas de carga</h2>
+
+              <a class="panel-block">
+                <span class="panel-icon">
+                  <i class="fas fa-book" aria-hidden="true"></i>
+                </span>
+                Tiempo promedio de respuesta por petición, [[ data.secuencial.time_per_request ]]
+              </a>
+              <a class="panel-block">
+                <span class="panel-icon">
+                  <i class="fas fa-book" aria-hidden="tsrue"></i>
+                </span>
+                La velocidad de transferencia, [[ data.secuencial.transfer_rate ]]
+              </a>
+              <a class="panel-block">
+                <span class="panel-icon">
+                  <i class="fas fa-book" aria-hidden="true"></i>
+                </span>
+                El número de bytes transferidos, [[ data.secuencial.total_transferred ]]
+              </a>
+              <a class="panel-block">
+                <span class="panel-icon">
+                  <i class="fas fa-book" aria-hidden="true"></i>
+                </span>
+                Los diferentes porcentajes de respuesta de las peticiones por parte del servidor
+              </a>
+              <br>
+
+              <b-table :data="tabledata1" :columns="tablecolumns" :narrowed="true"></b-table>
+              <br>
+
+              <pre>[[ data.secuencial.salida ]]</pre>
+
+            </div>
+
+            <div class="column">
+
+              <h2 class="title">Gr&aacute;fica</h2>
+
+              <canvas id="canvas1"></canvas>
+              <br>
+
+              <b-field label="Regresion lineal" type="is-warning">
+                <b-input :value="regresion_formula1" size="is-large" readonly></b-input>
+              </b-field>
+
+            </div>
+
+          </div>
+
+        </b-tab-item>
+
+        <b-tab-item label="Concurrentes" icon-pack="fas" icon="cubes">
+
+          <div class="columns">
+
+            <div class="column">
+
+              <h2 class="title">Pruebas de carga</h2>
+
+              <a class="panel-block">
+                <span class="panel-icon">
+                  <i class="fas fa-book" aria-hidden="true"></i>
+                </span>
+                Tiempo promedio de respuesta por petición, [[ data.concurrente.time_per_request ]]
+              </a>
+              <a class="panel-block">
+                <span class="panel-icon">
+                  <i class="fas fa-book" aria-hidden="true"></i>
+                </span>
+                La velocidad de transferencia, [[ data.concurrente.transfer_rate ]]
+              </a>
+              <a class="panel-block">
+                <span class="panel-icon">
+                  <i class="fas fa-book" aria-hidden="true"></i>
+                </span>
+                El número de bytes transferidos, [[ data.concurrente.total_transferred ]]
+              </a>
+              <a class="panel-block">
+                <span class="panel-icon">
+                  <i class="fas fa-book" aria-hidden="true"></i>
+                </span>
+                Los diferentes porcentajes de respuesta de las peticiones por parte del servidor
+              </a>
+              <br>
+
+              <b-table :data="tabledata2" :columns="tablecolumns" :narrowed="true"></b-table>
+              <br>
+
+              <pre>[[ data.concurrente.salida ]]</pre>
+
+            </div>
+
+            <div class="column">
+
+              <h2 class="title">Gr&aacute;fica</h2>
+
+              <canvas id="canvas2"></canvas>
+              <br>
+
+              <b-field label="Regresion lineal" type="is-warning">
+                <b-input :value="regresion_formula2" size="is-large" readonly></b-input>
+              </b-field>
+
+            </div>
+
+          </div>
+        </b-tab-item>
+
+      </b-tabs>
+
+    </div>
+  </div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.4.0/jquery.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.24.0/moment.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.24.0/locale/es-us.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.8.0/Chart.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/regression/1.4.0/regression.min.js"></script>
+  <script src="https://unpkg.com/vue"></script>
+  <script src="https://unpkg.com/buefy/dist/buefy.min.js"></script>
+  <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+  <script src="https://unpkg.com/html2canvas@1.0.0-alpha.12/dist/html2canvas.js"></script>
+  <script src="https://unpkg.com/jspdf@latest/dist/jspdf.min.js"></script>
+
+  <script>
+
+    /* adopted from http://randomcolour.com */
+    const randomColor = function () {
+      var bg_colour = Math.floor(Math.random() * 16777215).toString(16);
+      bg_colour = "#" + ("000000" + bg_colour).slice(-6);
+      return bg_colour;
+    }
+
+    /* adopted from https://developer.mozilla.org/es/docs/Web/JavaScript/Referencia/Objetos_globales/Math/random */
+    const randint = function (min, max) {
+      return Math.floor(Math.random() * (max - min)) + min;
+    }
+    
+    const jspdf = new jsPDF();
+
+    Vue.use(Buefy, {
+      defaultIconPack: 'fas',
+      defaultContainerElement: '#content',
+    })
+
+    var vueapp = new Vue({
+      el: '#app',
+      delimiters: ['[[', ']]'],
+      data() {
+
+
+        let randColor = randomColor();
+        let n = randint(1, 25);
+        let x = n <= 10 ? n : 10;
+        let c = randint(1, x)
+
+        return {
+
+          url: "http://www.unicartagena.edu.co/",
+          n: n,
+          c: c,
+
+          data: {
+
+            secuencial: {
+              time_per_request: "390.913 [ms] (mean)",
+              total_transferred: "2140 bytes",
+              transfer_rate: "1.34 [Kbytes/sec] received",
+              salida: "",
+              porc: []
+            },
+
+            concurrente: {
+              time_per_request: "",
+              total_transferred: "",
+              transfer_rate: "",
+              salida: "",
+              porc: []
+            }
+
+          },
+
+          regression1: { a: 0, b: 0 },
+          regression2: { a: 0, b: 0 },
+          isLoading: false,
+
+          tablecolumns: [
+            {
+              field: 'porc',
+              label: 'Porcentaje (%)',
+            },
+            {
+              field: 'ms',
+              label: 'Milisegundos (ms)',
+            }
+          ],
+        }
+      },
+
+      computed: {
+
+        tabledata1() {
+          return this.data.secuencial.porc;
+        },
+
+        tabledata2() {
+          return this.data.concurrente.porc;
+        },
+
+        regresion_formula1() {
+          return `y = ${this.regression1.a} * x + ${this.regression1.b}`
+        },
+
+        regresion_formula2() {
+          return `y = ${this.regression2.a} * x + ${this.regression2.b}`
+        }
+
+      },
+
+      mounted() {
+        const context1 = document.getElementById('canvas1').getContext('2d');
+        this.myChart1 = new Chart(context1, this.chartConfig());
+
+        const context2 = document.getElementById('canvas2').getContext('2d');
+        this.myChart2 = new Chart(context2, this.chartConfig());
+      },
+
+      watch: {
+        'data': {
+          handler: function (val, oldVal) {
+
+            /* se actualiza datos de recibidos del servidors */
+            this.processPorcData(this.myChart1.config, this.data.secuencial.porc);
+            this.processPorcData(this.myChart2.config, this.data.concurrente.porc);
+
+            /* se actualiza datos de la regresion lineal */
+            this.myChart1.config.data.datasets[1].data = [{ x: 50, y: this.predict1(50) }, { x: 100, y: this.predict1(100) }];
+            this.myChart2.config.data.datasets[1].data = [{ x: 50, y: this.predict2(50) }, { x: 100, y: this.predict2(100) }];
+
+            /* se dibuja nuevamente las graficas */
+            this.myChart1.update();
+            this.myChart2.update();
+
+          },
+          deep: true
+        }
+      },
+
+      methods: {
+
+        evaluar() {
+          this.isLoading = true;
+          this.evaluar1(this);
+          this.evaluar2(this);
+        },
+
+        evaluar1(that) {
+          axios.post("/ab", {
+            url: that.url,
+            n: that.n,
+            c: 1
+          }).then(function (resp) {
+            that.data.secuencial = resp.data;
+            that.computarRegresion(that.regression1, that.data.secuencial.porc);
+            that.isLoading = false;
+          }).catch(function (error) {
+            that.isLoading = false;
+          });
+        },
+
+        evaluar2(that) {
+          axios.post("/ab", {
+            url: that.url,
+            n: that.n,
+            c: that.c
+          }).then(function (resp) {
+            that.data.concurrente = resp.data;
+            that.computarRegresion(that.regression2, that.data.concurrente.porc);
+            that.isLoading = false;
+          }).catch(function (error) {
+            that.isLoading = false;
+          });
+        },
+
+        chartConfig() {
+          let color1 = randomColor();
+          let color2 = randomColor();
+          return {
+            type: 'scatter',
+            data: {
+              labels: [],
+              datasets: [{
+                type: 'line',
+                label: "Pruebas de carga",
+                backgroundColor: color1,
+                borderColor: color1,
+                data: [],
+                showLine: true,
+                fill: false
+              }, {
+                type: 'line',
+                label: "Regression Lineal",
+                backgroundColor: color2,
+                borderColor: color2,
+                data: [],
+                showLine: true,
+                fill: false
+              }],
+            },
+            options: {
+              responsive: true,
+              title: {
+                display: false,
+                text: 'Regresion lineal'
+              },
+              tooltips: {
+                mode: 'index',
+                intersect: false,
+              },
+              hover: {
+                mode: 'nearest',
+                intersect: true
+              },
+              scales: {
+              },
+            }
+          }
+        },
+
+        processPorcData(chartConfig, porcdata) {
+          chartConfig.data.datasets[0].data = porcdata.map(e => {
+            let x = e.porc;
+            let y = e.ms;
+            return { x, y };
+          });
+        },
+
+        computarRegresion(regresion, data) {
+          /* computar regresion lineal */
+          let regression_data = data.map(o => [o.porc, o.ms]);
+          let result = regression('linear', regression_data);
+          regresion.a = result.equation[0];
+          regresion.b = result.equation[1];
+        },
+
+        predict1(x) {
+          return this.regression1.a * x + this.regression1.b;
+        },
+
+        predict2(x) {
+          return this.regression2.a * x + this.regression2.b;
+        },
+
+        generarPDF() {
+
+          var doc = jspdf;
+
+          doc.setTextColor("#858487");
+
+          doc.setFont("courier", "normal");
+          doc.setFontSize(7);
+          doc.text(110, 10, "Pruebas de carga con Apache Benchmark | Luis Mejia & Saad Bittar");
+
+          doc.setTextColor("#000000");
+
+          doc.setFont("courier", "bold");
+          doc.setFontSize(12);
+          doc.text(20, 20, "Pruebas Secuenciales");
+
+          doc.setFont("courier", "normal");
+          doc.setFontSize(8);
+          doc.text(20, 30, this.data.secuencial.salida);
+          
+          doc.addPage();
+
+          doc.setTextColor("#858487");
+
+          doc.setFont("courier", "normal");
+          doc.setFontSize(7);
+          doc.text(110, 10, "Pruebas de carga con Apache Benchmark | Luis Mejia & Saad Bittar");
+
+          doc.setTextColor("#000000");
+
+          doc.setFont("courier", "bold");
+          doc.setFontSize(12);
+          doc.text(20, 20, "Pruebas Concurrentes");
+
+          doc.setFont("courier", "normal");
+          doc.setFontSize(8);
+          doc.text(20, 30, this.data.concurrente.salida);
+
+          doc.save();
+
+        }
+
+      }
+    })
+  </script>
+</body>
+
+</html>
